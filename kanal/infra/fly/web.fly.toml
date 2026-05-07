@@ -21,6 +21,7 @@ primary_region = "iad"
   HOSTNAME = "0.0.0.0"
   NODE_ENV = "production"
   NEXT_TELEMETRY_DISABLED = "1"
+  NODE_OPTIONS = "--max-old-space-size=192"
 
 [http_service]
   internal_port = 8080
@@ -40,4 +41,4 @@ primary_region = "iad"
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "256mb"

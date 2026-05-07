@@ -19,10 +19,14 @@ primary_region = "iad"
 [env]
   PORT = "8080"
   NODE_ENV = "production"
+  # Cap V8 heap so a 256MB Fly machine doesn't OOM under transient spikes.
+  NODE_OPTIONS = "--max-old-space-size=192"
 
 [http_service]
   internal_port = 8080
   force_https = true
+  # API must always be reachable: never auto-stop. Webhooks (WhatsApp,
+  # Postmark) and the chat page rely on a sub-second response time.
   auto_stop_machines = "off"
   auto_start_machines = true
   min_machines_running = 1
@@ -38,4 +42,4 @@ primary_region = "iad"
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "256mb"

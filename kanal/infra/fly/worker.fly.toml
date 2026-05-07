@@ -18,6 +18,7 @@ primary_region = "iad"
 [env]
   NODE_ENV = "production"
   METER_AI_INTERVAL_MS = "300000"
+  NODE_OPTIONS = "--max-old-space-size=192"
 
 [processes]
   app = "node dist/index.js"
@@ -26,4 +27,4 @@ primary_region = "iad"
 # in-process meter:ai timers. Keep at least 1 running.
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "256mb"

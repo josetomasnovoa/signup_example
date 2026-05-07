@@ -1,158 +1,196 @@
-# Kanal — production deploy on Fly.io
+# Kanal — production deploy on Fly.io (free tier)
 
-This is the runbook for the first deploy. Designed for the two-phone test:
-each phone opens `https://app.<domain>/chat/triage`, types a message, and it
-flows through the full pipeline (API → BullMQ → worker → rules → AI →
-destinations) on production infrastructure.
+The fastest path to two phones hitting `https://kanal-web.fly.dev/chat/triage`.
+No custom domain required for the first phase — Fly.io gives free
+`*.fly.dev` subdomains automatically. Cloudflare comes later.
 
-## Provider accounts you need
+---
 
-| Provider | Why | Where |
-|----------|-----|-------|
-| Fly.io | Hosts the 4 apps (API, worker, MCP, web) | https://fly.io |
-| Neon | Postgres 16 (free tier OK) | https://neon.tech |
-| Upstash | Redis 7 (free tier OK) | https://upstash.com |
-| Anthropic / Google | Optional: needed only if you set `aiEnabled: true` on a metered inbox. BYOK works without these. | https://console.anthropic.com / https://aistudio.google.com |
-| DNS | The domain you own | wherever you bought it |
+## TL;DR — copy-paste deploy
 
-Sign up for the first three before continuing.
+You need three accounts, all free, all sign-up-in-2-minutes:
 
-## One-time provisioning
+| Provider | What for | URL |
+|----------|----------|-----|
+| Fly.io | Hosts the 3 apps | https://fly.io |
+| Neon | Postgres 16 | https://neon.tech |
+| Upstash | Redis 7 | https://upstash.com |
 
-### 1. Postgres (Neon)
-
-1. Create a Neon project → copy the **`postgres://kanal_owner:...`-style** connection string.
-2. Open the SQL editor and grant the migration role `BYPASSRLS`:
-   ```sql
-   ALTER ROLE <neon-owner> BYPASSRLS;
-   ```
-3. From your laptop, with `DATABASE_URL` set to that string:
-   ```bash
-   pnpm --filter @kanal/db db:apply
-   pnpm --filter @kanal/db db:seed-dev   # creates the demo tenant + inbox + a kn_test_ key
-   ```
-   The seed prints an API key — **save it**, it's the bearer token the web app uses for
-   server-side calls.
-4. Now create the **runtime role** that the apps will actually connect as:
-   ```sql
-   -- Already created by 0002_rls_force.sql, but verify:
-   SELECT rolname FROM pg_roles WHERE rolname = 'kanal_app';
-   ALTER ROLE kanal_app WITH PASSWORD 'pick-something-random';
-   ```
-   Build the runtime URL:
-   `postgres://kanal_app:<pwd>@<neon-host>/<db>?sslmode=require`.
-
-### 2. Redis (Upstash)
-
-1. Create an Upstash Redis database in the same region as your Fly apps (e.g.
-   `iad`).
-2. Copy the **TLS** connection string (starts with `rediss://`). Both API and
-   worker use the same Redis URL.
-
-### 3. Fly.io apps
+Then, from your laptop, with the `kanal/` directory as cwd:
 
 ```bash
+# 1. Install + auth (one-time)
+curl -L https://fly.io/install.sh | sh   # → flyctl
 flyctl auth login
-flyctl apps create kanal-api
-flyctl apps create kanal-worker
-flyctl apps create kanal-mcp
-flyctl apps create kanal-web
+
+# 2. Export connection strings (paste from Neon + Upstash dashboards)
+export DATABASE_URL='postgres://kanal:...@<neon-host>/kanal?sslmode=require'
+export REDIS_URL='rediss://default:...@<upstash-host>:6379'
+
+# 3. (Optional) bring your own AI keys for the metered path
+# export ANTHROPIC_API_KEY='sk-ant-…'
+# export GOOGLE_API_KEY='…'
+
+# 4. Run the script — provisions DB + secrets + deploys 3 apps
+./infra/scripts/deploy.sh
 ```
 
-### 4. Secrets per app
+The script:
+1. Verifies `flyctl` + `pnpm` are installed and you're logged in.
+2. Generates a 32-byte `KANAL_KMS_KEY` (prints it once — save it).
+3. Applies Drizzle migrations and the post-migrate RLS SQL against your DB.
+4. Seeds the demo tenant + inbox + a `kn_test_…` API key (printed at the
+   end).
+5. Creates 3 Fly apps: `kanal-api`, `kanal-worker`, `kanal-web`.
+6. Sets the runtime secrets on each app.
+7. Builds + deploys each app via `flyctl deploy --remote-only`.
+
+When it finishes you can hand both phones the same URL:
+
+> **https://kanal-web.fly.dev/chat/triage**
+
+Each phone types a name, sends messages, and the web app proxies to the
+API. The worker classifies and fans out to the seeded webhook destination.
+
+---
+
+## Sizing — free tier
+
+We trimmed every machine to **shared-cpu-1x / 256MB** (`NODE_OPTIONS=--max-old-space-size=192` to keep V8 heap under control). The MCP server is **not deployed** in this phase to stay within the 3-machine free quota. Add it back when you need Claude Desktop integration:
 
 ```bash
-# Generate a 32-byte KMS master key (production: replace with real KMS later)
-KMS=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+flyctl apps create kanal-mcp --org personal
+flyctl secrets set -a kanal-mcp KANAL_API_URL='https://kanal-api.fly.dev'
+flyctl deploy -c infra/fly/mcp.fly.toml -a kanal-mcp --remote-only
+```
 
-# API
+| App | Why always-on | Memory |
+|-----|---------------|--------|
+| kanal-api | Receives webhook + chat traffic; can't auto-stop | 256MB |
+| kanal-worker | Holds BullMQ subscriptions + meter:ai cron | 256MB |
+| kanal-web | Auto-stops when idle (cold start ~1s) | 256MB |
+
+Expected monthly cost while in free tier: **$0**, though Fly.io now
+typically asks for a card. Past the trial you'd pay ~$5/mo for these 3.
+
+---
+
+## Provisioning — step by step (if the script fails)
+
+### Postgres (Neon)
+
+1. Create a Neon project. Copy the **connection string** (starts with
+   `postgres://`). Put it in `DATABASE_URL`.
+2. In the Neon SQL editor, grant the migration role `BYPASSRLS` so it can
+   bypass `FORCE ROW LEVEL SECURITY` to apply structural changes:
+
+   ```sql
+   ALTER ROLE <neon-owner-role> WITH BYPASSRLS;
+   ```
+
+3. Apply migrations + seed (the `deploy.sh` script does this):
+
+   ```bash
+   DATABASE_URL=... pnpm --filter @kanal/db db:apply
+   DATABASE_URL=... pnpm --filter @kanal/db db:seed-dev
+   ```
+
+   The seed prints a `kn_test_…` API key. Save it; it's the bearer the web
+   app uses for server-side calls.
+
+### Redis (Upstash)
+
+1. Create an Upstash Redis database in the same region as your Fly apps
+   (e.g. `iad`, `lax`, `fra`).
+2. Copy the **TLS** connection string (`rediss://...`). Put it in
+   `REDIS_URL`.
+
+### Fly.io secrets — manual fallback
+
+If you want to set secrets one app at a time:
+
+```bash
+KMS=$(node -e 'console.log(require("crypto").randomBytes(32).toString("hex"))')
+
 flyctl secrets set -a kanal-api \
-  DATABASE_URL='postgres://kanal_app:<pwd>@<neon-host>/<db>?sslmode=require' \
-  REDIS_URL='rediss://default:<token>@<upstash-host>:6379' \
+  DATABASE_URL="$DATABASE_URL" \
+  REDIS_URL="$REDIS_URL" \
   KANAL_KMS_KEY="$KMS"
 
-# Worker (same DB + Redis + KMS, plus optional metered AI keys)
 flyctl secrets set -a kanal-worker \
-  DATABASE_URL='postgres://kanal_app:<pwd>@<neon-host>/<db>?sslmode=require' \
-  REDIS_URL='rediss://default:<token>@<upstash-host>:6379' \
-  KANAL_KMS_KEY="$KMS" \
-  ANTHROPIC_API_KEY='sk-ant-…'   # optional
-  # GOOGLE_API_KEY='…'           # optional
+  DATABASE_URL="$DATABASE_URL" \
+  REDIS_URL="$REDIS_URL" \
+  KANAL_KMS_KEY="$KMS"
+  # Optional: ANTHROPIC_API_KEY, GOOGLE_API_KEY
 
-# MCP
-flyctl secrets set -a kanal-mcp \
-  KANAL_API_URL='https://api.<your-domain>'
-
-# Web — uses an admin API key (single-tenant for the first phase)
 flyctl secrets set -a kanal-web \
-  KANAL_API_URL='https://api.<your-domain>' \
-  KANAL_API_KEY='kn_live_<the-one-you-minted-in-step-1>' \
+  KANAL_API_URL='https://kanal-api.fly.dev' \
+  KANAL_API_KEY='kn_test_...' \
   KANAL_PUBLIC_INBOX_SLUGS='triage'
 ```
 
-### 5. Deploy
+---
 
-From the repo root, with **the `kanal/` directory as cwd**:
-
-```bash
-flyctl deploy -c infra/fly/api.fly.toml      -a kanal-api --remote-only
-flyctl deploy -c infra/fly/worker.fly.toml   -a kanal-worker --remote-only
-flyctl deploy -c infra/fly/mcp.fly.toml      -a kanal-mcp --remote-only
-flyctl deploy -c infra/fly/web.fly.toml      -a kanal-web --remote-only
-```
-
-You can also push to GitHub and trigger `Actions → Deploy` with target `all`
-once you've added `FLY_API_TOKEN` to repo secrets.
-
-### 6. Custom domain + TLS
-
-Map subdomains to apps:
+## Verifying it works
 
 ```bash
-flyctl certs create -a kanal-api  api.<your-domain>
-flyctl certs create -a kanal-mcp  mcp.<your-domain>
-flyctl certs create -a kanal-web  app.<your-domain>
+# Liveness (always 200 if process up):
+curl https://kanal-api.fly.dev/health
+
+# Readiness (200 only if DB + Redis reachable):
+curl https://kanal-api.fly.dev/ready
+
+# Open the chat in a browser:
+open https://kanal-web.fly.dev/chat/triage
+
+# After phones send messages, list them:
+curl -H "authorization: Bearer $KANAL_API_KEY" \
+  https://kanal-api.fly.dev/v1/inboxes/00000000-0000-0000-0000-00000000beef/messages \
+  | jq '.messages[] | {sender: .sender.name, text: .contentText, status, ai: .aiClassification}'
 ```
 
-Each command prints DNS records (typically a CNAME to `<app>.fly.dev`).
-Set them in your registrar; certificates issue automatically once DNS
-propagates.
+---
 
-### 7. Smoke from a phone
+## Switching to your own domain (when you're ready)
 
-1. Open `https://app.<your-domain>/chat/triage` on each phone.
-2. (Optional) Type your name in the top-right. It's saved per-phone.
-3. Type a message and hit send. You should see "sent" within ~1s.
-4. From your laptop:
-   ```bash
-   curl -H "authorization: Bearer $KEY" \
-     https://api.<your-domain>/v1/inboxes/<inbox-id>/messages
-   ```
-   You should see both phones' messages with `status: processed` and any
-   AI classification populated.
-
-## Updating
-
-After making changes locally:
+Whenever you have a Cloudflare-managed domain ready, run:
 
 ```bash
-git push origin claude/multi-channel-inbox-system-JfVSp
-# Then in GitHub: Actions → Deploy → Run workflow → target=all
+./infra/scripts/add-custom-domain.sh kanaltest.com
 ```
 
-Or one app at a time from your laptop:
+It issues TLS certs for `api.<domain>`, `app.<domain>`, and `mcp.<domain>`
+(if MCP is deployed) and updates the web app's `KANAL_API_URL` secret.
 
-```bash
-flyctl deploy -c infra/fly/web.fly.toml -a kanal-web --remote-only
-```
+The script prints the DNS records you need to add at Cloudflare. If you
+export `CF_API_TOKEN` (with `Zone.Read` + `DNS:Edit` on the zone) and
+`CF_ZONE_ID`, the script creates the CNAMEs automatically.
 
-## Cost ceiling for the test
+After DNS propagates (usually < 5 min on Cloudflare), the certs activate
+automatically — no redeploy needed.
 
-- Fly.io: 3 free shared-cpu-1x machines (256MB) cover the MCP + web; API
-  and worker each ~$2/mo on shared-cpu-1x 512MB.
-- Neon: free tier (3GB storage).
-- Upstash: free tier (10K commands/day) — fine for two phones.
-- Anthropic / Google: pay-per-token; under $1 for any reasonable test
-  volume.
+---
 
-Total for the first week: **under $10**.
+## Troubleshooting
+
+**Web app can't reach API:** the web sees `KANAL_API_URL` from secrets, not
+from this README. Verify with `flyctl secrets list -a kanal-web`. If
+the URL is wrong, `flyctl secrets set -a kanal-web KANAL_API_URL=...`
+and the app restarts automatically.
+
+**Worker not processing messages:** `flyctl logs -a kanal-worker` and
+look for `worker started` and `ingest:processed` lines. If you see
+`ECONNREFUSED 6379`, your `REDIS_URL` is wrong.
+
+**`/ready` returns 503:** the body has per-check booleans + an `errors`
+map. Most common: `db: false` (Neon connection) or `redis: false`
+(Upstash). Check secrets first.
+
+**OOM on free tier:** open the app's metrics in the Fly dashboard. If RSS
+hovers near 240MB and crashes, you're hitting the 256MB cap. Either bump
+to `512mb` (`memory = "512mb"` in the fly.toml; ~$2/mo per app) or reduce
+worker concurrency in `apps/worker/src/index.ts`.
+
+**Re-running deploy.sh:** the script is idempotent. Re-running it will
+mint a new API key (the old one keeps working), re-stage secrets, and
+push fresh images.
