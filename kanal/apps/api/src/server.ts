@@ -1,8 +1,10 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import {
+  jsonSchemaTransform,
   serializerCompiler,
   validatorCompiler,
 } from 'fastify-type-provider-zod';
+import fastifySwagger from '@fastify/swagger';
 import { loggerConfig } from '@kanal/observability';
 import { KanalError } from '@kanal/shared';
 import { dbPlugin } from './plugins/db.js';
@@ -33,6 +35,25 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  await app.register(fastifySwagger, {
+    openapi: {
+      openapi: '3.1.0',
+      info: { title: 'Kanal API', version: '0.0.0' },
+      servers: [{ url: 'https://api.kanal.app' }],
+      components: {
+        securitySchemes: {
+          BearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'kn_live_<base62> | kn_test_<base62>',
+          },
+        },
+      },
+      security: [{ BearerAuth: [] }],
+    },
+    transform: jsonSchemaTransform,
+  });
 
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof KanalError) {

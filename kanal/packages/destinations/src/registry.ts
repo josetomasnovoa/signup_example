@@ -2,6 +2,7 @@ import type { DestinationDriver } from './driver.js';
 import { webhookDriver } from './webhook.js';
 import { slackDriver } from './slack.js';
 import { discordDriver } from './discord.js';
+import { mcpClientDriver } from './mcp-client.js';
 
 const DRIVERS = new Map<string, DestinationDriver>();
 
@@ -20,5 +21,6 @@ export function listDrivers(): readonly string[] {
 registerDriver(webhookDriver);
 registerDriver(slackDriver);
 registerDriver(discordDriver);
+registerDriver(mcpClientDriver);
 
-// Future: notion, drive, github_issue, email_forward, mcp_client
+// Future: notion, drive, github_issue, email_forward

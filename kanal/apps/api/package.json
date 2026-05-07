@@ -11,9 +11,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
     "lint": "eslint src",
-    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+    "clean": "rm -rf dist .turbo *.tsbuildinfo",
+    "openapi": "tsx src/cli/emit-openapi.ts"
   },
   "dependencies": {
+    "@fastify/swagger": "^9.4.0",
     "@kanal/ai": "workspace:*",
     "@kanal/db": "workspace:*",
     "@kanal/destinations": "workspace:*",
