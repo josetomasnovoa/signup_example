@@ -36,6 +36,7 @@ export async function registerMessages(app: FastifyInstance): Promise<void> {
   typed.post(
     '/v1/messages',
     {
+      config: { requireScope: 'messages:write' },
       schema: {
         body: PostMessageBody,
         response: {

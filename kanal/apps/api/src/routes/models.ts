@@ -19,6 +19,9 @@ const ModelDto = z.object({
 });
 
 function toDto(m: ModelEntry) {
+  if (m.provider !== 'anthropic' && m.provider !== 'google') {
+    throw new Error(`internal: non-public provider leaked: ${m.provider}`);
+  }
   return {
     id: m.id,
     provider: m.provider,
@@ -39,7 +42,7 @@ export async function registerModels(app: FastifyInstance): Promise<void> {
   app.withTypeProvider<ZodTypeProvider>().get(
     '/v1/ai/models',
     {
-      config: { skipTenant: true },
+      config: { skipAuth: true },
       schema: {
         querystring: z.object({
           provider: z.enum(['anthropic', 'google']).optional(),
@@ -53,7 +56,10 @@ export async function registerModels(app: FastifyInstance): Promise<void> {
       const opts: Parameters<typeof listModels>[0] = {};
       if (provider !== undefined) opts.provider = provider;
       if (includeDeprecated !== undefined) opts.includeDeprecated = includeDeprecated;
-      return { models: listModels(opts).map(toDto) };
+      const visible = listModels(opts).filter(
+        (m) => m.provider === 'anthropic' || m.provider === 'google',
+      );
+      return { models: visible.map(toDto) };
     },
   );
 }

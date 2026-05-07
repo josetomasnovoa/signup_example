@@ -14,7 +14,7 @@
  * existing inboxes keep working until the configured cutover date.
  */
 
-export type ModelProvider = 'anthropic' | 'google';
+export type ModelProvider = 'anthropic' | 'google' | 'mock';
 
 export type ModelTier = 'top' | 'balanced' | 'fast' | 'cheap' | 'legacy';
 
@@ -154,6 +154,22 @@ export const MODELS: readonly ModelEntry[] = [
     supportsByok: true,
     deprecated: true,
     replacement: 'google:gemini-2.5-flash',
+  },
+
+  // ── Test-only mock model (excluded from listModels by default) ───────────
+  {
+    id: 'mock:test',
+    provider: 'mock',
+    providerModelId: 'mock',
+    displayName: 'Mock (test only)',
+    tier: 'cheap',
+    contextWindow: 128_000,
+    capabilities: ['structured', 'tools'],
+    inputPricePer1M: 0,
+    outputPricePer1M: 0,
+    supportsByok: false,
+    deprecated: true,
+    replacement: 'anthropic:claude-haiku-4-5',
   },
 ] as const;
 

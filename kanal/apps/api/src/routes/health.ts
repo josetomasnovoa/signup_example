@@ -6,7 +6,7 @@ export async function registerHealth(app: FastifyInstance): Promise<void> {
   app.withTypeProvider<ZodTypeProvider>().get(
     '/health',
     {
-      config: { skipTenant: true },
+      config: { skipAuth: true },
       schema: {
         response: {
           200: z.object({ status: z.literal('ok'), service: z.string(), uptime: z.number() }),

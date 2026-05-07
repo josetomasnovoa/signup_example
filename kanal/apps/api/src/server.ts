@@ -7,7 +7,7 @@ import { loggerConfig } from '@kanal/observability';
 import { KanalError } from '@kanal/shared';
 import { dbPlugin } from './plugins/db.js';
 import { queuePlugin } from './plugins/queue.js';
-import { tenantContextPlugin } from './plugins/tenant-context.js';
+import { authPlugin } from './plugins/auth.js';
 import { registerHealth } from './routes/health.js';
 import { registerModels } from './routes/models.js';
 import { registerMessages } from './routes/messages.js';
@@ -41,7 +41,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   await app.register(queuePlugin, {
     redisUrl: opts.redisUrl ?? process.env.REDIS_URL ?? 'redis://localhost:6379',
   });
-  await app.register(tenantContextPlugin);
+  await app.register(authPlugin);
 
   await registerHealth(app);
   await registerModels(app);

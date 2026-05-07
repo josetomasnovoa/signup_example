@@ -16,6 +16,7 @@
   "dependencies": {
     "@kanal/ai": "workspace:*",
     "@kanal/db": "workspace:*",
+    "@kanal/destinations": "workspace:*",
     "@kanal/observability": "workspace:*",
     "@kanal/rules": "workspace:*",
     "@kanal/shared": "workspace:*",
