@@ -20,7 +20,7 @@ export interface MessageView {
   channel: string;
   subject: string | null;
   contentText: string | null;
-  sender: { name?: string; email?: string; phone?: string } | null;
+  sender: { name?: string | undefined; email?: string | undefined; phone?: string | undefined } | null;
   metadata: Record<string, unknown>;
   attachments: Array<{ filename: string; mimeType: string; sizeBytes: number }>;
 }

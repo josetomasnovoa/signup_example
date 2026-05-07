@@ -1,5 +1,7 @@
 import type { DestinationDriver } from './driver.js';
 import { webhookDriver } from './webhook.js';
+import { slackDriver } from './slack.js';
+import { discordDriver } from './discord.js';
 
 const DRIVERS = new Map<string, DestinationDriver>();
 
@@ -11,6 +13,12 @@ export function getDriver(kind: string): DestinationDriver | undefined {
   return DRIVERS.get(kind);
 }
 
-registerDriver(webhookDriver);
+export function listDrivers(): readonly string[] {
+  return [...DRIVERS.keys()];
+}
 
-// Future: notion, slack, discord, github_issue, email_forward, mcp_client
+registerDriver(webhookDriver);
+registerDriver(slackDriver);
+registerDriver(discordDriver);
+
+// Future: notion, drive, github_issue, email_forward, mcp_client

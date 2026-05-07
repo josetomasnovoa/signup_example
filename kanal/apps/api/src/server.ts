@@ -11,6 +11,13 @@ import { authPlugin } from './plugins/auth.js';
 import { registerHealth } from './routes/health.js';
 import { registerModels } from './routes/models.js';
 import { registerMessages } from './routes/messages.js';
+import { registerInboxes } from './routes/inboxes.js';
+import { registerChannels } from './routes/channels.js';
+import { registerRules } from './routes/rules.js';
+import { registerDestinations } from './routes/destinations.js';
+import { registerApiKeys } from './routes/api-keys.js';
+import { registerWhatsAppWebhook } from './routes/webhooks/whatsapp.js';
+import { registerPostmarkWebhook } from './routes/webhooks/postmark.js';
 
 export interface BuildServerOptions {
   databaseUrl?: string;
@@ -31,6 +38,21 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
     if (err instanceof KanalError) {
       return reply.status(err.statusCode).send(err.toJSON());
     }
+    // Fastify validation errors (FST_ERR_VALIDATION) carry a `validation`
+    // array and a 4xx statusCode — surface as 400 with details, not 500.
+    const fastifyErr = err as {
+      statusCode?: number;
+      code?: string;
+      validation?: unknown[];
+      message?: string;
+    };
+    if (fastifyErr.validation && Array.isArray(fastifyErr.validation)) {
+      return reply.status(fastifyErr.statusCode ?? 400).send({
+        code: 'validation_error',
+        message: fastifyErr.message ?? 'Validation failed',
+        details: { validation: fastifyErr.validation },
+      });
+    }
     app.log.error(err);
     return reply.status(500).send({ code: 'internal_error', message: 'Internal Server Error' });
   });
@@ -46,6 +68,13 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   await registerHealth(app);
   await registerModels(app);
   await registerMessages(app);
+  await registerInboxes(app);
+  await registerChannels(app);
+  await registerRules(app);
+  await registerDestinations(app);
+  await registerApiKeys(app);
+  await registerWhatsAppWebhook(app);
+  await registerPostmarkWebhook(app);
 
   return app;
 }

@@ -29,6 +29,9 @@ importers:
       '@kanal/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@kanal/destinations':
+        specifier: workspace:*
+        version: link:../../packages/destinations
       '@kanal/observability':
         specifier: workspace:*
         version: link:../../packages/observability
