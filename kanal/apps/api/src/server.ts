@@ -5,11 +5,19 @@ import {
 } from 'fastify-type-provider-zod';
 import { loggerConfig } from '@kanal/observability';
 import { KanalError } from '@kanal/shared';
+import { dbPlugin } from './plugins/db.js';
+import { queuePlugin } from './plugins/queue.js';
+import { tenantContextPlugin } from './plugins/tenant-context.js';
 import { registerHealth } from './routes/health.js';
 import { registerModels } from './routes/models.js';
 import { registerMessages } from './routes/messages.js';
 
-export async function buildServer(): Promise<FastifyInstance> {
+export interface BuildServerOptions {
+  databaseUrl?: string;
+  redisUrl?: string;
+}
+
+export async function buildServer(opts: BuildServerOptions = {}): Promise<FastifyInstance> {
   const app: FastifyInstance = Fastify({
     logger: loggerConfig({ service: 'kanal-api' }),
     requestIdHeader: 'x-request-id',
@@ -26,6 +34,14 @@ export async function buildServer(): Promise<FastifyInstance> {
     app.log.error(err);
     return reply.status(500).send({ code: 'internal_error', message: 'Internal Server Error' });
   });
+
+  await app.register(dbPlugin, {
+    url: opts.databaseUrl ?? process.env.DATABASE_URL ?? 'postgres://kanal:kanal@localhost:5432/kanal',
+  });
+  await app.register(queuePlugin, {
+    redisUrl: opts.redisUrl ?? process.env.REDIS_URL ?? 'redis://localhost:6379',
+  });
+  await app.register(tenantContextPlugin);
 
   await registerHealth(app);
   await registerModels(app);

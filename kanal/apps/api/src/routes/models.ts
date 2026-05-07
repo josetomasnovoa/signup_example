@@ -39,6 +39,7 @@ export async function registerModels(app: FastifyInstance): Promise<void> {
   app.withTypeProvider<ZodTypeProvider>().get(
     '/v1/ai/models',
     {
+      config: { skipTenant: true },
       schema: {
         querystring: z.object({
           provider: z.enum(['anthropic', 'google']).optional(),

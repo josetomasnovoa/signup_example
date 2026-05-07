@@ -3,6 +3,7 @@ import postgres from 'postgres';
 import * as schema from './schema.js';
 
 export type DB = PostgresJsDatabase<typeof schema>;
+export type SqlClient = postgres.Sql;
 
 export interface CreateDbOptions {
   url: string;
@@ -10,7 +11,7 @@ export interface CreateDbOptions {
   idleTimeoutSec?: number;
 }
 
-export function createDb(opts: CreateDbOptions): { db: DB; sql: postgres.Sql } {
+export function createDb(opts: CreateDbOptions): { db: DB; sql: SqlClient } {
   const sql = postgres(opts.url, {
     max: opts.max ?? 10,
     idle_timeout: opts.idleTimeoutSec ?? 30,

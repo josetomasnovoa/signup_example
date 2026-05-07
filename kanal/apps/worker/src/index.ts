@@ -1,34 +1,61 @@
 import { Worker, type Job } from 'bullmq';
 import { Redis } from 'ioredis';
+import { eq } from 'drizzle-orm';
+import { createDb, schema, withTenant } from '@kanal/db';
 import { createLogger } from '@kanal/observability';
-import { InboundMessage } from '@kanal/shared';
+import { z } from 'zod';
 
 const logger = createLogger({ service: 'kanal-worker' });
 
-const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
+const databaseUrl = process.env.DATABASE_URL ?? 'postgres://kanal:kanal@localhost:5432/kanal';
+const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
+
+const { db, sql } = createDb({ url: databaseUrl });
+const connection = new Redis(redisUrl, { maxRetriesPerRequest: null });
+
+const IngestJob = z.object({
+  messageId: z.string().uuid(),
+  tenantId: z.string().uuid(),
 });
 
 /**
- * Stub `ingest` worker. Future implementation pipeline:
- *  1. Persist Message + Attachments (R2)
- *  2. Optional PII redaction
- *  3. Rules engine (match → transform → route)
- *  4. AI step (optional, BYOK or metered) via @kanal/ai
- *  5. Fan-out DeliveryAttempts to per-destination queues
+ * Ingest pipeline (skeleton):
+ *  1. Mark message `processing`.
+ *  2. Run rules engine (TODO — packages/rules executor).
+ *  3. Run AI step if enabled (TODO — packages/ai providers).
+ *  4. Fan out to destinations (TODO — packages/destinations).
+ *  5. Mark message `processed`.
+ *
+ * Steps 2-4 are no-ops for now; the loop still proves DB connectivity,
+ * tenant context propagation and BullMQ wiring end-to-end.
  */
 const ingestWorker = new Worker(
   'ingest',
   async (job: Job) => {
-    const parsed = InboundMessage.safeParse(job.data);
+    const parsed = IngestJob.safeParse(job.data);
     if (!parsed.success) {
-      logger.error({ err: parsed.error.flatten(), jobId: job.id }, 'invalid InboundMessage');
-      throw new Error('invalid InboundMessage');
+      logger.error({ err: parsed.error.flatten(), jobId: job.id }, 'invalid ingest job');
+      throw new Error('invalid ingest job');
     }
-    logger.info(
-      { jobId: job.id, inboxId: parsed.data.inboxId, channel: parsed.data.channelKind },
-      'ingest:received',
-    );
+    const { messageId, tenantId } = parsed.data;
+
+    await withTenant(db, tenantId, async (tx) => {
+      await tx
+        .update(schema.message)
+        .set({ status: 'processing' })
+        .where(eq(schema.message.id, messageId));
+    });
+
+    // TODO: rules + AI + delivery here
+
+    await withTenant(db, tenantId, async (tx) => {
+      await tx
+        .update(schema.message)
+        .set({ status: 'processed', processedAt: new Date() })
+        .where(eq(schema.message.id, messageId));
+    });
+
+    logger.info({ jobId: job.id, messageId, tenantId }, 'ingest:processed');
     return { ok: true };
   },
   { connection, concurrency: 4 },
@@ -44,6 +71,7 @@ async function shutdown() {
   logger.info('worker shutting down');
   await ingestWorker.close();
   await connection.quit();
+  await sql.end({ timeout: 5 });
   process.exit(0);
 }
 process.on('SIGINT', shutdown);

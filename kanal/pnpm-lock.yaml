@@ -38,12 +38,24 @@ importers:
       '@kanal/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      bullmq:
+        specifier: ^5.21.2
+        version: 5.76.6
+      drizzle-orm:
+        specifier: ^0.36.0
+        version: 0.36.4(postgres@3.4.9)
       fastify:
         specifier: ^5.0.0
         version: 5.8.5
+      fastify-plugin:
+        specifier: ^5.0.1
+        version: 5.1.0
       fastify-type-provider-zod:
         specifier: ^4.0.2
         version: 4.0.2(fastify@5.8.5)(zod@3.25.76)
+      ioredis:
+        specifier: ^5.4.1
+        version: 5.10.1
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -103,9 +115,15 @@ importers:
       bullmq:
         specifier: ^5.21.2
         version: 5.76.6
+      drizzle-orm:
+        specifier: ^0.36.0
+        version: 0.36.4(postgres@3.4.9)
       ioredis:
         specifier: ^5.4.1
         version: 5.10.1
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
     devDependencies:
       tsx:
         specifier: ^4.19.1
@@ -145,6 +163,9 @@ importers:
       drizzle-kit:
         specifier: ^0.28.0
         version: 0.28.1
+      tsx:
+        specifier: ^4.19.1
+        version: 4.21.0
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
@@ -1359,6 +1380,9 @@ packages:
 
   fast-uri@3.1.2:
     resolution: {integrity: sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==}
+
+  fastify-plugin@5.1.0:
+    resolution: {integrity: sha512-FAIDA8eovSt5qcDgcBvDuX/v0Cjz0ohGhENZ/wpc3y+oZCY2afZ9Baqql3g/lC+OHRnciQol4ww7tuthOb9idw==}
 
   fastify-type-provider-zod@4.0.2:
     resolution: {integrity: sha512-FDRzSL3ZuoZ+4YDevR1YOinmDKkxOdy3QB9dDR845sK+bQvDroPKhHAXLEAOObDxL7SMA0OZN/A4osrNBTdDTQ==}
@@ -2746,6 +2770,8 @@ snapshots:
       fast-decode-uri-component: 1.0.1
 
   fast-uri@3.1.2: {}
+
+  fastify-plugin@5.1.0: {}
 
   fastify-type-provider-zod@4.0.2(fastify@5.8.5)(zod@3.25.76):
     dependencies:
