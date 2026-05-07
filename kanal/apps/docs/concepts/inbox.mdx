@@ -1,0 +1,34 @@
+---
+title: 'Inbox'
+description: 'The unit of configuration: a set of channels, rules, destinations and AI settings.'
+---
+
+An **Inbox** binds the four configurable surfaces of the system:
+
+- **Channels** — where messages come from (`whatsapp`, `email`, `api`, `web`, `mcp`).
+- **Rules** — how to process incoming messages (predicates + transforms + routing).
+- **Destinations** — where processed messages go (`webhook`, `slack`, `discord`, `mcp_client`).
+- **AI** — which model is allowed inside transforms, in metered or BYOK mode.
+
+Inboxes are tenant-scoped. A tenant may have many; the free plan allows 1.
+
+## Settings sections
+
+The dashboard groups inbox settings into ten sections:
+
+1. **General** — name, slug, description, language, timezone.
+2. **Channels** — which sources accept input, with provider-specific config.
+3. **Rules** — declarative pipelines, priorities, dry-run.
+4. **Destinations** — fan-out targets, retry policy, fallbacks.
+5. **AI** — opt-in, model, system prompt, BYOK secret, token caps.
+6. **Privacy & Retention** — TTL, PII redaction, data export.
+7. **Notifications** — alerts to the tenant on inbound + delivery failures.
+8. **Team & Permissions** — members, roles, API keys, scopes.
+9. **Billing** — plan, usage counters, payment method.
+10. **Webhooks & Observability** — outgoing system events, audit log, DLQ.
+
+## Lifecycle
+
+`POST /v1/inboxes` → `PATCH /v1/inboxes/:id` → `POST /v1/inboxes/:id/archive`
+→ `DELETE /v1/inboxes/:id`. Archived inboxes accept no new messages but
+retain history per the configured `retentionDays`.

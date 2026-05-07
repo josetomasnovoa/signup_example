@@ -1,0 +1,4165 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kanal API",
+    "version": "0.0.0"
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "kn_live_<base62> | kn_test_<base62>"
+      }
+    },
+    "schemas": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    },
+                    "service": {
+                      "type": "string"
+                    },
+                    "uptime": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "service",
+                    "uptime"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/models": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "anthropic",
+                "google"
+              ]
+            },
+            "in": "query",
+            "name": "provider",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "includeDeprecated",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "models": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "provider": {
+                            "type": "string",
+                            "enum": [
+                              "anthropic",
+                              "google"
+                            ]
+                          },
+                          "displayName": {
+                            "type": "string"
+                          },
+                          "tier": {
+                            "type": "string",
+                            "enum": [
+                              "top",
+                              "balanced",
+                              "fast",
+                              "cheap",
+                              "legacy"
+                            ]
+                          },
+                          "contextWindow": {
+                            "type": "integer",
+                            "exclusiveMinimum": true,
+                            "minimum": 0
+                          },
+                          "capabilities": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "inputPricePer1M": {
+                            "type": "number"
+                          },
+                          "outputPricePer1M": {
+                            "type": "number"
+                          },
+                          "cachedInputPricePer1M": {
+                            "type": "number"
+                          },
+                          "supportsByok": {
+                            "type": "boolean"
+                          },
+                          "deprecated": {
+                            "type": "boolean"
+                          },
+                          "replacement": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "provider",
+                          "displayName",
+                          "tier",
+                          "contextWindow",
+                          "capabilities",
+                          "inputPricePer1M",
+                          "outputPricePer1M",
+                          "supportsByok"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "models"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "inboxId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "inboxSlug": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "channelKind": {
+                    "type": "string",
+                    "enum": [
+                      "whatsapp",
+                      "email",
+                      "api",
+                      "web",
+                      "mcp"
+                    ],
+                    "default": "api"
+                  },
+                  "sender": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string",
+                        "format": "email"
+                      },
+                      "phone": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "contentText": {
+                    "type": "string"
+                  },
+                  "contentHtml": {
+                    "type": "string"
+                  },
+                  "contentJson": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "subject": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{inboxId}/messages": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "inboxId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "channelId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "nullable": true
+                          },
+                          "externalId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "direction": {
+                            "type": "string",
+                            "enum": [
+                              "inbound",
+                              "outbound"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "received",
+                              "processing",
+                              "processed",
+                              "failed",
+                              "dead"
+                            ]
+                          },
+                          "sender": {
+                            "type": "object",
+                            "additionalProperties": {},
+                            "nullable": true
+                          },
+                          "contentText": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "contentHtml": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "contentJson": {
+                            "type": "object",
+                            "additionalProperties": {},
+                            "nullable": true
+                          },
+                          "subject": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "aiSummary": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "aiClassification": {
+                            "type": "object",
+                            "additionalProperties": {},
+                            "nullable": true
+                          },
+                          "receivedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "processedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "inboxId",
+                          "channelId",
+                          "externalId",
+                          "direction",
+                          "status",
+                          "sender",
+                          "contentText",
+                          "contentHtml",
+                          "contentJson",
+                          "subject",
+                          "aiSummary",
+                          "aiClassification",
+                          "receivedAt",
+                          "processedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "messages",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "inboxId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "channelId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "externalId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "inbound",
+                        "outbound"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "received",
+                        "processing",
+                        "processed",
+                        "failed",
+                        "dead"
+                      ]
+                    },
+                    "sender": {
+                      "type": "object",
+                      "additionalProperties": {},
+                      "nullable": true
+                    },
+                    "contentText": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "contentHtml": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "contentJson": {
+                      "type": "object",
+                      "additionalProperties": {},
+                      "nullable": true
+                    },
+                    "subject": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "aiSummary": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "aiClassification": {
+                      "type": "object",
+                      "additionalProperties": {},
+                      "nullable": true
+                    },
+                    "receivedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "processedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "inboxId",
+                    "channelId",
+                    "externalId",
+                    "direction",
+                    "status",
+                    "sender",
+                    "contentText",
+                    "contentHtml",
+                    "contentJson",
+                    "subject",
+                    "aiSummary",
+                    "aiClassification",
+                    "receivedAt",
+                    "processedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages/{id}/deliveries": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deliveries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "destinationId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "attemptNo": {
+                            "type": "integer"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "success",
+                              "failed",
+                              "dlq"
+                            ]
+                          },
+                          "errorCode": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "errorMessage": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "response": {
+                            "type": "object",
+                            "additionalProperties": {},
+                            "nullable": true
+                          },
+                          "startedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "finishedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "destinationId",
+                          "attemptNo",
+                          "status",
+                          "errorCode",
+                          "errorMessage",
+                          "response",
+                          "startedAt",
+                          "finishedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "deliveries"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "inboxes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "language": {
+                            "type": "string"
+                          },
+                          "timezone": {
+                            "type": "string"
+                          },
+                          "aiEnabled": {
+                            "type": "boolean"
+                          },
+                          "aiConfig": {
+                            "type": "object",
+                            "properties": {
+                              "modelId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "systemPrompt": {
+                                "type": "string"
+                              },
+                              "maxTokens": {
+                                "type": "integer",
+                                "exclusiveMinimum": true,
+                                "minimum": 0
+                              },
+                              "byokSecretId": {
+                                "type": "string",
+                                "format": "uuid"
+                              }
+                            },
+                            "required": [
+                              "modelId"
+                            ],
+                            "additionalProperties": false,
+                            "nullable": true
+                          },
+                          "retentionDays": {
+                            "type": "integer"
+                          },
+                          "redactPii": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "archivedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "slug",
+                          "description",
+                          "language",
+                          "timezone",
+                          "aiEnabled",
+                          "aiConfig",
+                          "retentionDays",
+                          "redactPii",
+                          "createdAt",
+                          "archivedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "inboxes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "slug": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50,
+                    "pattern": "^[a-z0-9][a-z0-9-]*$"
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "language": {
+                    "type": "string",
+                    "default": "en"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "default": "UTC"
+                  },
+                  "aiEnabled": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "aiConfig": {
+                    "type": "object",
+                    "properties": {
+                      "modelId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "systemPrompt": {
+                        "type": "string"
+                      },
+                      "maxTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": true,
+                        "minimum": 0
+                      },
+                      "byokSecretId": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "required": [
+                      "modelId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "retentionDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "default": 90
+                  },
+                  "redactPii": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": [
+                  "name",
+                  "slug"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "language": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "type": "string"
+                    },
+                    "aiEnabled": {
+                      "type": "boolean"
+                    },
+                    "aiConfig": {
+                      "type": "object",
+                      "properties": {
+                        "modelId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "systemPrompt": {
+                          "type": "string"
+                        },
+                        "maxTokens": {
+                          "type": "integer",
+                          "exclusiveMinimum": true,
+                          "minimum": 0
+                        },
+                        "byokSecretId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "modelId"
+                      ],
+                      "additionalProperties": false,
+                      "nullable": true
+                    },
+                    "retentionDays": {
+                      "type": "integer"
+                    },
+                    "redactPii": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "archivedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "description",
+                    "language",
+                    "timezone",
+                    "aiEnabled",
+                    "aiConfig",
+                    "retentionDays",
+                    "redactPii",
+                    "createdAt",
+                    "archivedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "language": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "type": "string"
+                    },
+                    "aiEnabled": {
+                      "type": "boolean"
+                    },
+                    "aiConfig": {
+                      "type": "object",
+                      "properties": {
+                        "modelId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "systemPrompt": {
+                          "type": "string"
+                        },
+                        "maxTokens": {
+                          "type": "integer",
+                          "exclusiveMinimum": true,
+                          "minimum": 0
+                        },
+                        "byokSecretId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "modelId"
+                      ],
+                      "additionalProperties": false,
+                      "nullable": true
+                    },
+                    "retentionDays": {
+                      "type": "integer"
+                    },
+                    "redactPii": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "archivedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "description",
+                    "language",
+                    "timezone",
+                    "aiEnabled",
+                    "aiConfig",
+                    "retentionDays",
+                    "redactPii",
+                    "createdAt",
+                    "archivedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "language": {
+                    "type": "string",
+                    "default": "en"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "default": "UTC"
+                  },
+                  "aiEnabled": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "aiConfig": {
+                    "type": "object",
+                    "properties": {
+                      "modelId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "systemPrompt": {
+                        "type": "string"
+                      },
+                      "maxTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": true,
+                        "minimum": 0
+                      },
+                      "byokSecretId": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "required": [
+                      "modelId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "retentionDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "default": 90
+                  },
+                  "redactPii": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "language": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "type": "string"
+                    },
+                    "aiEnabled": {
+                      "type": "boolean"
+                    },
+                    "aiConfig": {
+                      "type": "object",
+                      "properties": {
+                        "modelId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "systemPrompt": {
+                          "type": "string"
+                        },
+                        "maxTokens": {
+                          "type": "integer",
+                          "exclusiveMinimum": true,
+                          "minimum": 0
+                        },
+                        "byokSecretId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "modelId"
+                      ],
+                      "additionalProperties": false,
+                      "nullable": true
+                    },
+                    "retentionDays": {
+                      "type": "integer"
+                    },
+                    "redactPii": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "archivedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "description",
+                    "language",
+                    "timezone",
+                    "aiEnabled",
+                    "aiConfig",
+                    "retentionDays",
+                    "redactPii",
+                    "createdAt",
+                    "archivedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": [
+                    "null"
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{id}/archive": {
+      "post": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "language": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "type": "string"
+                    },
+                    "aiEnabled": {
+                      "type": "boolean"
+                    },
+                    "aiConfig": {
+                      "type": "object",
+                      "properties": {
+                        "modelId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "systemPrompt": {
+                          "type": "string"
+                        },
+                        "maxTokens": {
+                          "type": "integer",
+                          "exclusiveMinimum": true,
+                          "minimum": 0
+                        },
+                        "byokSecretId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "modelId"
+                      ],
+                      "additionalProperties": false,
+                      "nullable": true
+                    },
+                    "retentionDays": {
+                      "type": "integer"
+                    },
+                    "redactPii": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "archivedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "description",
+                    "language",
+                    "timezone",
+                    "aiEnabled",
+                    "aiConfig",
+                    "retentionDays",
+                    "redactPii",
+                    "createdAt",
+                    "archivedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{inboxId}/channels": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "inboxId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "whatsapp",
+                              "email",
+                              "api",
+                              "web",
+                              "mcp"
+                            ]
+                          },
+                          "config": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "inboxId",
+                          "kind",
+                          "config",
+                          "enabled",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "channels"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "whatsapp",
+                      "email",
+                      "api",
+                      "web",
+                      "mcp"
+                    ]
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "default": {}
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "inboxId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "whatsapp",
+                        "email",
+                        "api",
+                        "web",
+                        "mcp"
+                      ]
+                    },
+                    "config": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "inboxId",
+                    "kind",
+                    "config",
+                    "enabled",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{inboxId}/channels/{id}": {
+      "patch": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "inboxId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "whatsapp",
+                        "email",
+                        "api",
+                        "web",
+                        "mcp"
+                      ]
+                    },
+                    "config": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "inboxId",
+                    "kind",
+                    "config",
+                    "enabled",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": [
+                    "null"
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{inboxId}/rules": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rules": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "inboxId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "priority": {
+                            "type": "integer"
+                          },
+                          "definition": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "inboxId",
+                          "name",
+                          "enabled",
+                          "priority",
+                          "definition",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "rules"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": -1000,
+                    "maximum": 1000,
+                    "default": 0
+                  },
+                  "definition": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "type": "number",
+                        "enum": [
+                          1
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "trigger": {
+                        "type": "string",
+                        "enum": [
+                          "message.received"
+                        ]
+                      },
+                      "pipeline": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "match": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "cel": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      },
+                                      "required": [
+                                        "cel"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "all": {
+                                          "type": "array",
+                                          "items": {}
+                                        }
+                                      },
+                                      "required": [
+                                        "all"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "any": {
+                                          "type": "array",
+                                          "items": {}
+                                        }
+                                      },
+                                      "required": [
+                                        "any"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  ]
+                                },
+                                "else": {
+                                  "type": "string",
+                                  "enum": [
+                                    "skip",
+                                    "stop"
+                                  ],
+                                  "default": "skip"
+                                }
+                              },
+                              "required": [
+                                "match"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "transform": {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "op": {
+                                            "type": "string",
+                                            "enum": [
+                                              "set"
+                                            ]
+                                          },
+                                          "path": {
+                                            "type": "string"
+                                          },
+                                          "value": {}
+                                        },
+                                        "required": [
+                                          "op",
+                                          "path"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "op": {
+                                            "type": "string",
+                                            "enum": [
+                                              "redact"
+                                            ]
+                                          },
+                                          "paths": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": [
+                                          "op",
+                                          "paths"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "op": {
+                                            "type": "string",
+                                            "enum": [
+                                              "ai.classify"
+                                            ]
+                                          },
+                                          "modelId": {
+                                            "type": "string"
+                                          },
+                                          "schema": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "out": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "op",
+                                          "schema",
+                                          "out"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "op": {
+                                            "type": "string",
+                                            "enum": [
+                                              "ai.extract"
+                                            ]
+                                          },
+                                          "modelId": {
+                                            "type": "string"
+                                          },
+                                          "schema": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "out": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "op",
+                                          "schema",
+                                          "out"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "op": {
+                                            "type": "string",
+                                            "enum": [
+                                              "ai.summarize"
+                                            ]
+                                          },
+                                          "modelId": {
+                                            "type": "string"
+                                          },
+                                          "maxWords": {
+                                            "type": "integer",
+                                            "exclusiveMinimum": true,
+                                            "minimum": 0
+                                          },
+                                          "out": {
+                                            "type": "string",
+                                            "default": "summary"
+                                          }
+                                        },
+                                        "required": [
+                                          "op"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": [
+                                "transform"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "route": {
+                                  "type": "object",
+                                  "properties": {
+                                    "fanout": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "destination": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "with": {
+                                            "type": "object",
+                                            "additionalProperties": {}
+                                          }
+                                        },
+                                        "required": [
+                                          "destination"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      "minItems": 1
+                                    },
+                                    "on_failure": {
+                                      "type": "string",
+                                      "enum": [
+                                        "fallback",
+                                        "continue",
+                                        "stop"
+                                      ],
+                                      "default": "fallback"
+                                    }
+                                  },
+                                  "required": [
+                                    "fanout"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "route"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "name",
+                      "trigger",
+                      "pipeline"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "name",
+                  "definition"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "inboxId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "priority": {
+                      "type": "integer"
+                    },
+                    "definition": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "inboxId",
+                    "name",
+                    "enabled",
+                    "priority",
+                    "definition",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{inboxId}/rules/{id}": {
+      "patch": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": -1000,
+                    "maximum": 1000
+                  },
+                  "definition": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "type": "number",
+                        "enum": [
+                          1
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "trigger": {
+                        "type": "string",
+                        "enum": [
+                          "message.received"
+                        ]
+                      },
+                      "pipeline": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "match": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "cel": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      },
+                                      "required": [
+                                        "cel"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "all": {
+                                          "type": "array",
+                                          "items": {}
+                                        }
+                                      },
+                                      "required": [
+                                        "all"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "any": {
+                                          "type": "array",
+                                          "items": {}
+                                        }
+                                      },
+                                      "required": [
+                                        "any"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  ]
+                                },
+                                "else": {
+                                  "type": "string",
+                                  "enum": [
+                                    "skip",
+                                    "stop"
+                                  ],
+                                  "default": "skip"
+                                }
+                              },
+                              "required": [
+                                "match"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "transform": {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "op": {
+                                            "type": "string",
+                                            "enum": [
+                                              "set"
+                                            ]
+                                          },
+                                          "path": {
+                                            "type": "string"
+                                          },
+                                          "value": {}
+                                        },
+                                        "required": [
+                                          "op",
+                                          "path"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "op": {
+                                            "type": "string",
+                                            "enum": [
+                                              "redact"
+                                            ]
+                                          },
+                                          "paths": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": [
+                                          "op",
+                                          "paths"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "op": {
+                                            "type": "string",
+                                            "enum": [
+                                              "ai.classify"
+                                            ]
+                                          },
+                                          "modelId": {
+                                            "type": "string"
+                                          },
+                                          "schema": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "out": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "op",
+                                          "schema",
+                                          "out"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "op": {
+                                            "type": "string",
+                                            "enum": [
+                                              "ai.extract"
+                                            ]
+                                          },
+                                          "modelId": {
+                                            "type": "string"
+                                          },
+                                          "schema": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "out": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "op",
+                                          "schema",
+                                          "out"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "op": {
+                                            "type": "string",
+                                            "enum": [
+                                              "ai.summarize"
+                                            ]
+                                          },
+                                          "modelId": {
+                                            "type": "string"
+                                          },
+                                          "maxWords": {
+                                            "type": "integer",
+                                            "exclusiveMinimum": true,
+                                            "minimum": 0
+                                          },
+                                          "out": {
+                                            "type": "string",
+                                            "default": "summary"
+                                          }
+                                        },
+                                        "required": [
+                                          "op"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": [
+                                "transform"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "route": {
+                                  "type": "object",
+                                  "properties": {
+                                    "fanout": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "destination": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "with": {
+                                            "type": "object",
+                                            "additionalProperties": {}
+                                          }
+                                        },
+                                        "required": [
+                                          "destination"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      "minItems": 1
+                                    },
+                                    "on_failure": {
+                                      "type": "string",
+                                      "enum": [
+                                        "fallback",
+                                        "continue",
+                                        "stop"
+                                      ],
+                                      "default": "fallback"
+                                    }
+                                  },
+                                  "required": [
+                                    "fanout"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "route"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "name",
+                      "trigger",
+                      "pipeline"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "inboxId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "priority": {
+                      "type": "integer"
+                    },
+                    "definition": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "inboxId",
+                    "name",
+                    "enabled",
+                    "priority",
+                    "definition",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": [
+                    "null"
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{inboxId}/rules/{id}/dry-run": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "object",
+                    "properties": {
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "whatsapp",
+                          "email",
+                          "api",
+                          "web",
+                          "mcp"
+                        ]
+                      },
+                      "subject": {
+                        "type": "string",
+                        "nullable": true,
+                        "default": null
+                      },
+                      "contentText": {
+                        "type": "string",
+                        "nullable": true,
+                        "default": null
+                      },
+                      "sender": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "phone": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "nullable": true,
+                        "default": null
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "additionalProperties": {},
+                        "default": {}
+                      },
+                      "attachments": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "filename": {
+                              "type": "string"
+                            },
+                            "mimeType": {
+                              "type": "string"
+                            },
+                            "sizeBytes": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "filename",
+                            "mimeType",
+                            "sizeBytes"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "default": []
+                      }
+                    },
+                    "required": [
+                      "channel"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "matched": {
+                      "type": "boolean"
+                    },
+                    "derived": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "fanout": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "destination": {
+                            "type": "string"
+                          },
+                          "with": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "destination"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "matched",
+                    "derived",
+                    "tags",
+                    "fanout"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{inboxId}/destinations": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "destinations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "inboxId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "webhook",
+                              "notion",
+                              "drive",
+                              "slack",
+                              "discord",
+                              "github_issue",
+                              "email_forward",
+                              "mcp_client",
+                              "internal",
+                              "api_passthrough"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "config": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "retryPolicy": {
+                            "type": "object",
+                            "properties": {
+                              "maxAttempts": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 20
+                              },
+                              "backoff": {
+                                "type": "string",
+                                "enum": [
+                                  "fixed",
+                                  "exponential"
+                                ]
+                              },
+                              "baseMs": {
+                                "type": "integer",
+                                "minimum": 50,
+                                "maximum": 60000
+                              },
+                              "maxMs": {
+                                "type": "integer",
+                                "minimum": 50,
+                                "maximum": 600000
+                              }
+                            },
+                            "required": [
+                              "maxAttempts",
+                              "backoff",
+                              "baseMs",
+                              "maxMs"
+                            ],
+                            "additionalProperties": false,
+                            "nullable": true
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "inboxId",
+                          "kind",
+                          "name",
+                          "config",
+                          "enabled",
+                          "retryPolicy",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "destinations"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "webhook",
+                      "notion",
+                      "drive",
+                      "slack",
+                      "discord",
+                      "github_issue",
+                      "email_forward",
+                      "mcp_client",
+                      "internal",
+                      "api_passthrough"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "retryPolicy": {
+                    "type": "object",
+                    "properties": {
+                      "maxAttempts": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20
+                      },
+                      "backoff": {
+                        "type": "string",
+                        "enum": [
+                          "fixed",
+                          "exponential"
+                        ]
+                      },
+                      "baseMs": {
+                        "type": "integer",
+                        "minimum": 50,
+                        "maximum": 60000
+                      },
+                      "maxMs": {
+                        "type": "integer",
+                        "minimum": 50,
+                        "maximum": 600000
+                      }
+                    },
+                    "required": [
+                      "maxAttempts",
+                      "backoff",
+                      "baseMs",
+                      "maxMs"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name",
+                  "config"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "inboxId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "webhook",
+                        "notion",
+                        "drive",
+                        "slack",
+                        "discord",
+                        "github_issue",
+                        "email_forward",
+                        "mcp_client",
+                        "internal",
+                        "api_passthrough"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "config": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "retryPolicy": {
+                      "type": "object",
+                      "properties": {
+                        "maxAttempts": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 20
+                        },
+                        "backoff": {
+                          "type": "string",
+                          "enum": [
+                            "fixed",
+                            "exponential"
+                          ]
+                        },
+                        "baseMs": {
+                          "type": "integer",
+                          "minimum": 50,
+                          "maximum": 60000
+                        },
+                        "maxMs": {
+                          "type": "integer",
+                          "minimum": 50,
+                          "maximum": 600000
+                        }
+                      },
+                      "required": [
+                        "maxAttempts",
+                        "backoff",
+                        "baseMs",
+                        "maxMs"
+                      ],
+                      "additionalProperties": false,
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "inboxId",
+                    "kind",
+                    "name",
+                    "config",
+                    "enabled",
+                    "retryPolicy",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{inboxId}/destinations/{id}": {
+      "patch": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "retryPolicy": {
+                    "type": "object",
+                    "properties": {
+                      "maxAttempts": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20
+                      },
+                      "backoff": {
+                        "type": "string",
+                        "enum": [
+                          "fixed",
+                          "exponential"
+                        ]
+                      },
+                      "baseMs": {
+                        "type": "integer",
+                        "minimum": 50,
+                        "maximum": 60000
+                      },
+                      "maxMs": {
+                        "type": "integer",
+                        "minimum": 50,
+                        "maximum": 600000
+                      }
+                    },
+                    "required": [
+                      "maxAttempts",
+                      "backoff",
+                      "baseMs",
+                      "maxMs"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "inboxId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "webhook",
+                        "notion",
+                        "drive",
+                        "slack",
+                        "discord",
+                        "github_issue",
+                        "email_forward",
+                        "mcp_client",
+                        "internal",
+                        "api_passthrough"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "config": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "retryPolicy": {
+                      "type": "object",
+                      "properties": {
+                        "maxAttempts": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 20
+                        },
+                        "backoff": {
+                          "type": "string",
+                          "enum": [
+                            "fixed",
+                            "exponential"
+                          ]
+                        },
+                        "baseMs": {
+                          "type": "integer",
+                          "minimum": 50,
+                          "maximum": 60000
+                        },
+                        "maxMs": {
+                          "type": "integer",
+                          "minimum": 50,
+                          "maximum": 600000
+                        }
+                      },
+                      "required": [
+                        "maxAttempts",
+                        "backoff",
+                        "baseMs",
+                        "maxMs"
+                      ],
+                      "additionalProperties": false,
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "inboxId",
+                    "kind",
+                    "name",
+                    "config",
+                    "enabled",
+                    "retryPolicy",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": [
+                    "null"
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/inboxes/{inboxId}/destinations/{id}/test": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payload": {
+                    "type": "object",
+                    "properties": {
+                      "subject": {
+                        "type": "string",
+                        "nullable": true,
+                        "default": null
+                      },
+                      "contentText": {
+                        "type": "string",
+                        "nullable": true,
+                        "default": null
+                      },
+                      "derived": {
+                        "type": "object",
+                        "additionalProperties": {},
+                        "default": {}
+                      },
+                      "tags": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "default": []
+                      }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                      "subject": null,
+                      "contentText": null,
+                      "derived": {},
+                      "tags": []
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "inboxId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "success",
+                        "failed"
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "response": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "response"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api-keys": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "apiKeys": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "keyPrefix": {
+                            "type": "string"
+                          },
+                          "scopes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "inboxes:read",
+                                "inboxes:write",
+                                "messages:read",
+                                "messages:write",
+                                "rules:read",
+                                "rules:write",
+                                "destinations:read",
+                                "destinations:write",
+                                "ai:read",
+                                "ai:write",
+                                "billing:read",
+                                "audit:read",
+                                "admin"
+                              ]
+                            }
+                          },
+                          "lastUsedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "revokedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "keyPrefix",
+                          "scopes",
+                          "lastUsedAt",
+                          "expiresAt",
+                          "revokedAt",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "apiKeys"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "inboxes:read",
+                        "inboxes:write",
+                        "messages:read",
+                        "messages:write",
+                        "rules:read",
+                        "rules:write",
+                        "destinations:read",
+                        "destinations:write",
+                        "ai:read",
+                        "ai:write",
+                        "billing:read",
+                        "audit:read",
+                        "admin"
+                      ]
+                    },
+                    "default": [
+                      "inboxes:read",
+                      "inboxes:write",
+                      "messages:read",
+                      "messages:write",
+                      "rules:read",
+                      "rules:write",
+                      "destinations:read",
+                      "destinations:write",
+                      "ai:read",
+                      "ai:write",
+                      "billing:read",
+                      "audit:read",
+                      "admin"
+                    ]
+                  },
+                  "env": {
+                    "type": "string",
+                    "enum": [
+                      "live",
+                      "test"
+                    ],
+                    "default": "live"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "keyPrefix": {
+                      "type": "string"
+                    },
+                    "scopes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "inboxes:read",
+                          "inboxes:write",
+                          "messages:read",
+                          "messages:write",
+                          "rules:read",
+                          "rules:write",
+                          "destinations:read",
+                          "destinations:write",
+                          "ai:read",
+                          "ai:write",
+                          "billing:read",
+                          "audit:read",
+                          "admin"
+                        ]
+                      }
+                    },
+                    "lastUsedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "revokedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "apiKey": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "keyPrefix",
+                    "scopes",
+                    "lastUsedAt",
+                    "expiresAt",
+                    "revokedAt",
+                    "createdAt",
+                    "apiKey"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api-keys/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "keyPrefix": {
+                      "type": "string"
+                    },
+                    "scopes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "inboxes:read",
+                          "inboxes:write",
+                          "messages:read",
+                          "messages:write",
+                          "rules:read",
+                          "rules:write",
+                          "destinations:read",
+                          "destinations:write",
+                          "ai:read",
+                          "ai:write",
+                          "billing:read",
+                          "audit:read",
+                          "admin"
+                        ]
+                      }
+                    },
+                    "lastUsedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "revokedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "keyPrefix",
+                    "scopes",
+                    "lastUsedAt",
+                    "expiresAt",
+                    "revokedAt",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/secrets": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "secrets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "purpose": {
+                            "type": "string",
+                            "enum": [
+                              "byok_anthropic",
+                              "byok_google",
+                              "byok_openai",
+                              "wa_token",
+                              "notion_token",
+                              "slack_token",
+                              "generic_oauth",
+                              "signing_secret"
+                            ]
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "additionalProperties": {},
+                            "nullable": true
+                          },
+                          "kmsKeyId": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "rotatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "purpose",
+                          "metadata",
+                          "kmsKeyId",
+                          "createdAt",
+                          "rotatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "secrets"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "purpose": {
+                    "type": "string",
+                    "enum": [
+                      "byok_anthropic",
+                      "byok_google",
+                      "byok_openai",
+                      "wa_token",
+                      "notion_token",
+                      "slack_token",
+                      "generic_oauth",
+                      "signing_secret"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "purpose",
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "purpose": {
+                      "type": "string",
+                      "enum": [
+                        "byok_anthropic",
+                        "byok_google",
+                        "byok_openai",
+                        "wa_token",
+                        "notion_token",
+                        "slack_token",
+                        "generic_oauth",
+                        "signing_secret"
+                      ]
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "additionalProperties": {},
+                      "nullable": true
+                    },
+                    "kmsKeyId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "rotatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "purpose",
+                    "metadata",
+                    "kmsKeyId",
+                    "createdAt",
+                    "rotatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/secrets/{id}/rotate": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "purpose": {
+                      "type": "string",
+                      "enum": [
+                        "byok_anthropic",
+                        "byok_google",
+                        "byok_openai",
+                        "wa_token",
+                        "notion_token",
+                        "slack_token",
+                        "generic_oauth",
+                        "signing_secret"
+                      ]
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "additionalProperties": {},
+                      "nullable": true
+                    },
+                    "kmsKeyId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "rotatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "purpose",
+                    "metadata",
+                    "kmsKeyId",
+                    "createdAt",
+                    "rotatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/secrets/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": [
+                    "null"
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/whatsapp/{appId}": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "hub.mode",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "hub.verify_token",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "hub.challenge",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "appId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "post": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "appId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/webhooks/inbound/postmark/{secret}": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "MessageID": {
+                    "type": "string"
+                  },
+                  "From": {
+                    "type": "string"
+                  },
+                  "FromName": {
+                    "type": "string"
+                  },
+                  "FromFull": {
+                    "type": "object",
+                    "properties": {
+                      "Email": {
+                        "type": "string"
+                      },
+                      "Name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "Email"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "To": {
+                    "type": "string"
+                  },
+                  "ToFull": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "Email": {
+                          "type": "string"
+                        },
+                        "MailboxHash": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "Email"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "Subject": {
+                    "type": "string"
+                  },
+                  "TextBody": {
+                    "type": "string"
+                  },
+                  "HtmlBody": {
+                    "type": "string"
+                  },
+                  "Date": {
+                    "type": "string"
+                  },
+                  "MailboxHash": {
+                    "type": "string"
+                  },
+                  "OriginalRecipient": {
+                    "type": "string"
+                  },
+                  "Headers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "Name": {
+                          "type": "string"
+                        },
+                        "Value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "Name",
+                        "Value"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "MessageID",
+                  "From"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            },
+            "in": "path",
+            "name": "secret",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.kanal.app"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ]
+}

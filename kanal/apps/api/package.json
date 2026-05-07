@@ -21,6 +21,7 @@
     "@kanal/destinations": "workspace:*",
     "@kanal/observability": "workspace:*",
     "@kanal/rules": "workspace:*",
+    "@kanal/secrets": "workspace:*",
     "@kanal/shared": "workspace:*",
     "bullmq": "^5.21.2",
     "drizzle-orm": "^0.36.0",

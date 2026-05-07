@@ -1,0 +1,79 @@
+---
+title: 'Quickstart'
+description: 'Send a message and watch it flow through rules + AI to a webhook.'
+---
+
+## 1. Mint an API key
+
+```bash
+curl -X POST https://api.kanal.app/v1/api-keys \
+  -H "authorization: Bearer $ADMIN_KEY" \
+  -H "content-type: application/json" \
+  -d '{"name":"quickstart","scopes":["admin"]}'
+```
+
+The plaintext is in the `apiKey` field. Save it now — you will not see it again.
+
+## 2. Create an inbox
+
+```bash
+curl -X POST https://api.kanal.app/v1/inboxes \
+  -H "authorization: Bearer $KANAL_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{
+    "name": "Triage",
+    "slug": "triage",
+    "aiEnabled": true,
+    "aiConfig": { "modelId": "anthropic:claude-haiku-4-5", "systemPrompt": "Classify support messages." }
+  }'
+```
+
+## 3. Wire a destination
+
+```bash
+curl -X POST https://api.kanal.app/v1/inboxes/$INBOX_ID/destinations \
+  -H "authorization: Bearer $KANAL_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{"kind":"webhook","name":"my-webhook","config":{"url":"https://example.com/sink","signingSecret":"whsec_..."},"enabled":true}'
+```
+
+## 4. Add a rule
+
+```bash
+curl -X POST https://api.kanal.app/v1/inboxes/$INBOX_ID/rules \
+  -H "authorization: Bearer $KANAL_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{
+    "name": "classify + fanout",
+    "definition": {
+      "version": 1,
+      "name": "classify + fanout",
+      "trigger": "message.received",
+      "pipeline": [
+        {"transform":[{"op":"ai.classify","schema":{"topic":"string","urgency":"string"},"out":"classification"}]},
+        {"route":{"fanout":[{"destination":"my-webhook"}]}}
+      ]
+    }
+  }'
+```
+
+## 5. Send a message
+
+```bash
+curl -X POST https://api.kanal.app/v1/messages \
+  -H "authorization: Bearer $KANAL_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{"inboxSlug":"triage","subject":"AC broken","contentText":"It is hot in 4B"}'
+```
+
+You'll get a `202 { id, status: "queued" }` response. Within ~100ms the
+worker picks it up, runs the rule (classify via Claude Haiku), and POSTs
+the enriched payload to `https://example.com/sink` with an
+`x-kanal-signature` HMAC header.
+
+## 6. Inspect
+
+```bash
+curl -H "authorization: Bearer $KANAL_API_KEY" \
+  https://api.kanal.app/v1/messages/$MSG_ID/deliveries
+```

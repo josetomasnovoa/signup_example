@@ -5,7 +5,7 @@ import {
   validatorCompiler,
 } from 'fastify-type-provider-zod';
 import fastifySwagger from '@fastify/swagger';
-import { loggerConfig } from '@kanal/observability';
+import { loggerConfig, startTracing, stopTracing } from '@kanal/observability';
 import { KanalError } from '@kanal/shared';
 import { dbPlugin } from './plugins/db.js';
 import { queuePlugin } from './plugins/queue.js';
@@ -18,6 +18,7 @@ import { registerChannels } from './routes/channels.js';
 import { registerRules } from './routes/rules.js';
 import { registerDestinations } from './routes/destinations.js';
 import { registerApiKeys } from './routes/api-keys.js';
+import { registerSecrets } from './routes/secrets.js';
 import { registerWhatsAppWebhook } from './routes/webhooks/whatsapp.js';
 import { registerPostmarkWebhook } from './routes/webhooks/postmark.js';
 
@@ -27,6 +28,7 @@ export interface BuildServerOptions {
 }
 
 export async function buildServer(opts: BuildServerOptions = {}): Promise<FastifyInstance> {
+  startTracing({ serviceName: 'kanal-api' });
   const app: FastifyInstance = Fastify({
     logger: loggerConfig({ service: 'kanal-api' }),
     requestIdHeader: 'x-request-id',
@@ -94,6 +96,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   await registerRules(app);
   await registerDestinations(app);
   await registerApiKeys(app);
+  await registerSecrets(app);
   await registerWhatsAppWebhook(app);
   await registerPostmarkWebhook(app);
 
@@ -104,7 +107,16 @@ const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   const port = Number(process.env.PORT ?? 3001);
   buildServer()
-    .then((app) => app.listen({ port, host: '0.0.0.0' }))
+    .then((app) => {
+      const shutdown = async () => {
+        await app.close();
+        await stopTracing();
+        process.exit(0);
+      };
+      process.on('SIGINT', () => void shutdown());
+      process.on('SIGTERM', () => void shutdown());
+      return app.listen({ port, host: '0.0.0.0' });
+    })
     .catch((err) => {
       console.error(err);
       process.exit(1);

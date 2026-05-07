@@ -1,0 +1,17 @@
+{
+  "name": "@kanal/docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'docs: built by mintlify ci, no local artifacts'",
+    "dev": "mintlify dev",
+    "typecheck": "echo 'docs: nothing to typecheck'",
+    "test": "echo 'docs: no tests'",
+    "lint": "echo 'docs: no lint'",
+    "clean": "rm -rf .mintlify .turbo"
+  },
+  "devDependencies": {
+    "mintlify": "^4.1.45"
+  }
+}

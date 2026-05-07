@@ -1,0 +1,63 @@
+---
+title: 'BYOK (Bring Your Own Key)'
+description: 'Use your own Anthropic / Google API key. Encrypted at rest with KMS-wrapped DEK.'
+---
+
+Kanal supports two AI billing modes per inbox:
+
+- **Metered**: Kanal pays the model provider; you pay Kanal a small markup
+  per 1M tokens against your subscription.
+- **BYOK**: you pay the model provider directly with your own key. Kanal
+  charges nothing for inference.
+
+## Storing your key
+
+```bash
+curl -X POST https://api.kanal.app/v1/secrets \
+  -H "authorization: Bearer $KANAL_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{"purpose":"byok_anthropic","value":"sk-ant-…"}'
+```
+
+The plaintext is **never** stored. The server runs envelope encryption:
+
+1. Generate a random 256-bit DEK.
+2. AES-256-GCM-encrypt your key with the DEK.
+3. Wrap the DEK with the KMS master key (cloud KMS in production,
+   `KANAL_KMS_KEY`-driven local KMS in development).
+4. Store ciphertext + wrapped DEK + KMS key id; throw away the DEK.
+
+The endpoint returns a stable `id` you can reference from inbox config.
+
+## Wiring to an inbox
+
+```bash
+curl -X PATCH https://api.kanal.app/v1/inboxes/$INBOX_ID \
+  -H "authorization: Bearer $KANAL_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{"aiEnabled":true,"aiConfig":{"modelId":"anthropic:claude-sonnet-4-6","byokSecretId":"<secret-id>"}}'
+```
+
+When the worker hits an `ai.classify` step on a message in this inbox, it:
+
+- Loads the encrypted secret row.
+- Unwraps the DEK in-memory by calling KMS.
+- Decrypts your API key.
+- Calls the provider SDK once with that key as the request `apiKey`.
+- Zeroes the DEK buffer.
+
+The plaintext key never crosses a log line, an exception trace, or an
+`ai_usage` row. CI tests inject a fake key into a request and verify it
+does not leak into structured logs.
+
+## Rotation
+
+```bash
+curl -X POST https://api.kanal.app/v1/secrets/$SECRET_ID/rotate \
+  -H "authorization: Bearer $KANAL_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{"value":"sk-ant-NEW…"}'
+```
+
+`rotated_at` is updated; the previous ciphertext is overwritten. For
+audited rotations keep the prior secret row and migrate inbox references.

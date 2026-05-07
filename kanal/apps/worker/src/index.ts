@@ -7,8 +7,13 @@ import { z } from 'zod';
 import { buildUsageRecord, providerForModel } from '@kanal/ai';
 import { createDb, schema, withTenant } from '@kanal/db';
 import { getDriver } from '@kanal/destinations';
-import { createLogger } from '@kanal/observability';
+import { createLogger, startTracing, stopTracing, getTracer, withSpan } from '@kanal/observability';
+
+startTracing({ serviceName: 'kanal-worker' });
+const tracer = getTracer('kanal-worker');
 import { executeRule, type MessageView, type RuleContext } from '@kanal/rules';
+import { unsealSecret } from '@kanal/secrets';
+import { startMeterAi, defaultBillingClient } from './meter-ai.js';
 
 const logger = createLogger({ service: 'kanal-worker' });
 
@@ -41,7 +46,12 @@ const ingestWorker = new Worker(
       throw new Error('invalid ingest job');
     }
     const { messageId, tenantId } = parsed.data;
-    await processMessage(messageId, tenantId);
+    await withSpan(
+      tracer,
+      'process.message',
+      { 'kanal.message_id': messageId, 'kanal.tenant_id': tenantId, 'kanal.job_id': job.id ?? '' },
+      () => processMessage(messageId, tenantId),
+    );
     logger.info({ jobId: job.id, messageId, tenantId }, 'ingest:processed');
     return { ok: true };
   },
@@ -90,11 +100,37 @@ async function processMessage(messageId: string, tenantId: string): Promise<void
   }
 
   // Phase 2: rules engine.
-  const aiConfig = (loaded.inbox.aiConfig as { modelId?: string; systemPrompt?: string } | null) ?? null;
+  const aiConfig =
+    (loaded.inbox.aiConfig as
+      | { modelId?: string; systemPrompt?: string; byokSecretId?: string }
+      | null) ?? null;
   const aiUsageRows: Array<typeof schema.aiUsage.$inferInsert> = [];
   let derived: Record<string, unknown> = {};
   const tags = new Set<string>();
   const fanout = new Map<string, { with?: Record<string, unknown> }>();
+
+  // BYOK plumbing: if the inbox config references an encrypted_secret row,
+  // unwrap it once per message and feed the plaintext into the provider
+  // SDK call. Charge is set to 0 for this run.
+  let byokKey: string | undefined;
+  if (aiConfig?.byokSecretId) {
+    const secretRow = await withTenant(db, tenantId, (tx) =>
+      tx.query.encryptedSecret.findFirst({
+        where: eq(schema.encryptedSecret.id, aiConfig.byokSecretId!),
+      }),
+    );
+    if (secretRow) {
+      try {
+        byokKey = await unsealSecret({
+          ciphertext: secretRow.ciphertext,
+          dekWrapped: secretRow.dekWrapped,
+          kmsKeyId: secretRow.kmsKeyId,
+        });
+      } catch (err) {
+        logger.error({ err, secretId: aiConfig.byokSecretId }, 'byok:unseal failed');
+      }
+    }
+  }
 
   const ctx: RuleContext = {
     now: () => new Date(),
@@ -113,6 +149,7 @@ async function processMessage(messageId: string, tenantId: string): Promise<void
       const { value, usage } = await provider.classify({
         modelId: model.id,
         schema: zodSchema,
+        ...(byokKey ? { apiKey: byokKey } : {}),
         messages: [
           ...(aiConfig.systemPrompt ? [{ role: 'system' as const, content: aiConfig.systemPrompt }] : []),
           { role: 'user' as const, content: input.text },
@@ -125,7 +162,7 @@ async function processMessage(messageId: string, tenantId: string): Promise<void
         modelId: model.id,
         operation: input.op,
         usage,
-        byok: false,
+        byok: byokKey !== undefined,
       });
       // The DB enum lacks a 'mock' value on purpose (it would leak into
       // billing dashboards). Persist mock usage as `byok` since it has
@@ -246,13 +283,22 @@ async function processMessage(messageId: string, tenantId: string): Promise<void
   });
 }
 
+// Start the meter:ai cron alongside the BullMQ worker. Period configurable
+// via METER_AI_INTERVAL_MS; default 5 minutes.
+const meter = startMeterAi(
+  { db, billing: defaultBillingClient(), logger },
+  Number(process.env.METER_AI_INTERVAL_MS ?? 5 * 60_000),
+);
+
 logger.info('worker started');
 
 async function shutdown() {
   logger.info('worker shutting down');
+  meter.stop();
   await ingestWorker.close();
   await connection.quit();
   await sql.end({ timeout: 5 });
+  await stopTracing();
   process.exit(0);
 }
 process.on('SIGINT', shutdown);

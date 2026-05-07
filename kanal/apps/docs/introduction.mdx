@@ -1,0 +1,40 @@
+---
+title: 'Introduction'
+description: 'Multi-channel inbox SaaS. WhatsApp + email + API + MCP in, configurable rules and AI in the middle, anywhere out.'
+---
+
+Kanal is a programmable inbox. A user sends a message to a buzón through any
+channel they want — WhatsApp, email, the web app, a direct API call, or as
+an MCP tool — and Kanal processes the message according to rules you define
+and delivers the result to one or more destinations.
+
+## Mental model
+
+```
+[ source channel ] → ingest → [ rules: match + transform + route ] → [ destinations ]
+                                            ↑
+                                   optional AI step
+                                  (BYOK or metered)
+```
+
+## What you get
+
+- **Multi-channel ingest**: WhatsApp Cloud API, Postmark inbound email, web
+  upload, REST `POST /v1/messages`, MCP tool.
+- **Rules engine**: declarative DSL with predicates (CEL-style), named
+  transforms (`set`, `redact`, `ai.classify`, `ai.extract`, `ai.summarize`),
+  and fan-out routing with retries + DLQ.
+- **AI providers**: Claude (Opus/Sonnet/Haiku 4.x) and Gemini (2.5 Pro /
+  Flash / Flash-Lite) behind a uniform interface. Bring your own key (BYOK)
+  and your usage is encrypted at rest with a KMS-wrapped DEK.
+- **Destinations**: webhook (HMAC-signed), Slack, Discord, MCP-client (call
+  any external MCP server's tool).
+- **MCP server**: external clients (Claude Desktop) reach the same API via
+  tool calls — no separate auth surface.
+- **Multi-tenant**: every row is RLS-isolated by `tenant_id`.
+
+## Next
+
+- [Quickstart](./quickstart) — send your first message in 60 seconds.
+- [Inbox concept](./concepts/inbox) — the unit of configuration.
+- [API reference](./api/overview) — all `/v1` endpoints.

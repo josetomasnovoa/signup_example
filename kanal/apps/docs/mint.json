@@ -1,0 +1,36 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Kanal",
+  "logo": { "light": "/logo/light.svg", "dark": "/logo/dark.svg" },
+  "favicon": "/favicon.svg",
+  "colors": { "primary": "#0EA5E9", "light": "#7DD3FC", "dark": "#0369A1" },
+  "topbarLinks": [{ "name": "Dashboard", "url": "https://app.kanal.app" }],
+  "topbarCtaButton": { "name": "Get an API key", "url": "https://app.kanal.app/api-keys" },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": ["introduction", "quickstart"]
+    },
+    {
+      "group": "Concepts",
+      "pages": ["concepts/inbox", "concepts/channel", "concepts/rule", "concepts/destination"]
+    },
+    {
+      "group": "Channels",
+      "pages": ["channels/api", "channels/whatsapp", "channels/email", "channels/mcp"]
+    },
+    {
+      "group": "AI",
+      "pages": ["ai/overview", "ai/byok"]
+    },
+    {
+      "group": "API Reference",
+      "pages": ["api/overview"]
+    },
+    {
+      "group": "MCP",
+      "pages": ["mcp/server", "mcp/client-destination"]
+    }
+  ],
+  "openapi": ["openapi.json"]
+}
