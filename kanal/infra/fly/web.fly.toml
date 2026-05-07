@@ -1,0 +1,43 @@
+# Kanal web dashboard + chat (Next.js 15).
+# Deploy with: fly deploy -c infra/fly/web.fly.toml -a kanal-web
+#
+# Required Fly secrets:
+#   KANAL_API_URL              https://api.kanal.app
+#   KANAL_API_KEY              kn_live_... (admin key for server-side
+#                              calls; the dashboard is single-tenant for now)
+#   KANAL_PUBLIC_INBOX_SLUGS   comma-separated allowlist of inbox slugs
+#                              that can receive submissions via the
+#                              public /chat/[slug] page (e.g. "triage")
+
+app = "kanal-web"
+primary_region = "iad"
+
+[build]
+  dockerfile = "../docker/Dockerfile.web"
+  ignorefile = "../../.dockerignore"
+
+[env]
+  PORT = "8080"
+  HOSTNAME = "0.0.0.0"
+  NODE_ENV = "production"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "3s"
+    path = "/"
+    type = "http"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

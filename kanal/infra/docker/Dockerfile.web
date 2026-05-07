@@ -1,0 +1,46 @@
+# syntax=docker/dockerfile:1.7
+# Next.js 15 + Tailwind dashboard. Uses the standalone output mode so the
+# runtime container only needs node + .next/standalone bundle.
+
+FROM node:20.11.0-bookworm-slim AS base
+RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
+WORKDIR /repo
+
+FROM base AS deps
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json tsconfig.base.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/worker/package.json apps/worker/
+COPY apps/mcp-server/package.json apps/mcp-server/
+COPY apps/web/package.json apps/web/
+COPY apps/docs/package.json apps/docs/
+COPY packages/ai/package.json packages/ai/
+COPY packages/billing/package.json packages/billing/
+COPY packages/db/package.json packages/db/
+COPY packages/destinations/package.json packages/destinations/
+COPY packages/observability/package.json packages/observability/
+COPY packages/rules/package.json packages/rules/
+COPY packages/sdk/package.json packages/sdk/
+COPY packages/secrets/package.json packages/secrets/
+COPY packages/shared/package.json packages/shared/
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+FROM deps AS build
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @kanal/sdk... build
+RUN pnpm --filter @kanal/web build
+
+FROM node:20.11.0-bookworm-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=8080
+ENV HOSTNAME=0.0.0.0
+# Next outputs a self-contained server in apps/web/.next/standalone when
+# `output: 'standalone'` is set in next.config. We copy that subset.
+COPY --from=build /repo/apps/web/.next/standalone ./
+COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build /repo/apps/web/public ./apps/web/public
+EXPOSE 8080
+CMD ["node", "apps/web/server.js"]

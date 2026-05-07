@@ -1,0 +1,41 @@
+# Kanal API on Fly.io.
+# Deploy with: fly deploy -c infra/fly/api.fly.toml -a kanal-api
+#
+# Required Fly secrets (set with `fly secrets set -a kanal-api KEY=value`):
+#   DATABASE_URL          postgres://kanal_app:...@<neon-host>/kanal?sslmode=require
+#   REDIS_URL             rediss://default:...@<upstash-host>:6379
+#   KANAL_KMS_KEY         32-byte hex (production: prefer real KMS adapter)
+#   POSTMARK_INBOUND_SECRET (set if Postmark inbound is wired)
+#   STRIPE_SECRET_KEY     (omit until billing is provisioned)
+#   OTEL_EXPORTER_OTLP_ENDPOINT (e.g. https://otlp-gateway-prod-us-...)
+
+app = "kanal-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "../docker/Dockerfile.api"
+  ignorefile = "../../.dockerignore"
+
+[env]
+  PORT = "8080"
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "15s"
+    method = "GET"
+    timeout = "3s"
+    path = "/ready"
+    type = "http"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

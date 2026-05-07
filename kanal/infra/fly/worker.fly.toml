@@ -1,0 +1,29 @@
+# Kanal worker on Fly.io. No HTTP service — just a long-running process
+# that consumes BullMQ jobs and runs the meter:ai cron.
+#
+# Deploy with: fly deploy -c infra/fly/worker.fly.toml -a kanal-worker
+#
+# Required Fly secrets:
+#   DATABASE_URL, REDIS_URL, KANAL_KMS_KEY, OTEL_EXPORTER_OTLP_ENDPOINT
+#   ANTHROPIC_API_KEY (for metered Anthropic inference)
+#   GOOGLE_API_KEY    (for metered Gemini inference)
+
+app = "kanal-worker"
+primary_region = "iad"
+
+[build]
+  dockerfile = "../docker/Dockerfile.worker"
+  ignorefile = "../../.dockerignore"
+
+[env]
+  NODE_ENV = "production"
+  METER_AI_INTERVAL_MS = "300000"
+
+[processes]
+  app = "node dist/index.js"
+
+# Workers must NOT be auto-stopped: they hold BullMQ subscriptions and
+# in-process meter:ai timers. Keep at least 1 running.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

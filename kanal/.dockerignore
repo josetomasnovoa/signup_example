@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+.git
+**/*.tsbuildinfo
+**/.DS_Store
+.env
+.env.*
+infra/docker/Dockerfile.*
+.github
+apps/docs
+README.md

@@ -1,0 +1,64 @@
+name: Deploy
+
+# Manually triggered. Each app has its own job so a bad worker deploy
+# can't take the API down. CI itself runs the build smoke checks via
+# ci.yml on every push; this workflow only ships images that already
+# passed CI.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which app to deploy
+        required: true
+        type: choice
+        options: [api, worker, mcp, web, all]
+
+concurrency:
+  group: deploy-${{ github.event.inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  api:
+    if: ${{ github.event.inputs.target == 'api' || github.event.inputs.target == 'all' }}
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: kanal } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy -c infra/fly/api.fly.toml -a kanal-api --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  worker:
+    if: ${{ github.event.inputs.target == 'worker' || github.event.inputs.target == 'all' }}
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: kanal } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy -c infra/fly/worker.fly.toml -a kanal-worker --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  mcp:
+    if: ${{ github.event.inputs.target == 'mcp' || github.event.inputs.target == 'all' }}
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: kanal } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy -c infra/fly/mcp.fly.toml -a kanal-mcp --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  web:
+    if: ${{ github.event.inputs.target == 'web' || github.event.inputs.target == 'all' }}
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: kanal } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy -c infra/fly/web.fly.toml -a kanal-web --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
